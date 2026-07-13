@@ -43,9 +43,6 @@ import torch
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
 from torch.utils.data import DataLoader
 
-# Bu script doğrudan `python src/eval/evaluate.py` ile çalıştırıldığında
-# Python repo kökünü sys.path'e otomatik eklemiyor; `src.*` importlarının
-# çalışması için repo kökü elle eklenir.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.data_prep.dataset import DriverAttentionDataset, LABEL_TO_IDX, build_transforms, get_dataloaders  # noqa: E402

@@ -1,22 +1,4 @@
-"""
-swin_classifier.py
 
-timm ile pretrained Swin-Base backbone'unu yükleyip binary classification
-head'ine bağlayan model tanımı.
-
-Checkpoint ayrımı: backbone ve head ağırlıkları ayrı state_dict olarak
-dışa aktarılır (bkz. get_backbone_state_dict / get_head_state_dict).
-Bu ayrım, video fazında (Faz 4) backbone'un Video Swin Transformer'a
-warm-start olarak aktarılabilmesi için gereklidir.
-
-Not: timm'in swin_base_patch4_window7_224 mimarisinde classification
-head, modelin "head" attribute'u altında (timm.layers.classifier.
-ClassifierHead) yer alır; state_dict anahtarları "head.fc.weight" /
-"head.fc.bias" olarak geçer (doğrulandı: timm==1.0.15). Bu yüzden
-"head." prefix'i ile filtreleme, farklı timm sürümlerinde head'in
-doğrudan nn.Linear ("head.weight") ya da ClassifierHead ("head.fc.weight")
-olarak tanımlı olduğu durumların ikisinde de çalışır.
-"""
 
 import timm
 import torch.nn as nn
