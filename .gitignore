@@ -1,0 +1,33 @@
+# Veri seti (indirme scriptleriyle yeniden oluşturulur, repo'ya konmaz)
+data/
+*.jpg
+*.jpeg
+*.png
+*.zip
+*.csv
+
+# Ama .gitkeep gibi placeholder dosyalar kalsın
+!.gitkeep
+
+# Model checkpoint / ağırlıklar
+*.pth
+*.pt
+*.ckpt
+checkpoints/
+
+# Kaggle credential (ASLA commit edilmemeli)
+kaggle.json
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+venv/
+.env
+
+# Colab / Jupyter
+*.log
+
+# Deneysel log/izleme araçları
+wandb/
+runs/
