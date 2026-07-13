@@ -1,0 +1,22 @@
+# train_config.yaml
+# Faz 2: Swin-Base fine-tuning hyperparametreleri.
+#
+# Kullanım (Colab):
+#   python src/train/train.py --config configs/train_config.yaml
+#
+# CLI argümanları bu dosyadaki değerleri override eder, örn:
+#   python src/train/train.py --config configs/train_config.yaml --epochs 20
+
+splits_dir: /content/statefarm_splits
+images_root: /content/statefarm_binary
+output_dir: /content/checkpoints
+
+epochs: 15
+batch_size: 32
+num_workers: 2
+
+lr_backbone: 0.00001
+lr_head: 0.001
+
+patience: 3
+seed: 42
