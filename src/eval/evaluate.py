@@ -6,10 +6,12 @@ Faz 3: Eğitilmiş modelin (backbone_best.pth + head_best.pth) internal
 performansını ölçer.
 
 Internal ve external değerlendirme aynı `run_evaluation` fonksiyonunu
-kullanır (kod tekrarı yok); ikisi arasındaki fark "generalization gap"
-olarak ayrı raporlanır.
+kullanır (kod tekrarı yok). --splits_dir/--images_root (internal) ve
+--external_splits_dir/--external_images_root (external) birbirinden
+bağımsız opsiyoneldir; en az biri verilmelidir. İkisi de verilirse
+aralarındaki fark "generalization gap" olarak ayrıca raporlanır.
 
-Kullanım (Colab, sadece internal):
+Kullanım (sadece internal):
 
     python src/eval/evaluate.py \
         --checkpoint_backbone /content/checkpoints/backbone_best.pth \
@@ -18,15 +20,24 @@ Kullanım (Colab, sadece internal):
         --images_root /content/statefarm_binary \
         --output_json /content/eval_results.json
 
-Kullanım (external dataset ile birlikte):
+Kullanım (sadece external):
+
+    python src/eval/evaluate.py \
+        --checkpoint_backbone /content/checkpoints/backbone_best.pth \
+        --checkpoint_head /content/checkpoints/head_best.pth \
+        --external_splits_dir /content/external_splits \
+        --external_images_root /content/external_binary \
+        --output_json /content/eval_results.json
+
+Kullanım (ikisi birlikte, generalization gap raporlanır):
 
     python src/eval/evaluate.py \
         --checkpoint_backbone /content/checkpoints/backbone_best.pth \
         --checkpoint_head /content/checkpoints/head_best.pth \
         --splits_dir /content/statefarm_splits \
         --images_root /content/statefarm_binary \
-        --external_splits_dir /content/auc_splits \
-        --external_images_root /content/auc_binary \
+        --external_splits_dir /content/external_splits \
+        --external_images_root /content/external_binary \
         --output_json /content/eval_results.json
 
 Not: external veri de subject_split.py/binary_mapping.py ile üretilenle
@@ -129,8 +140,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Eğitilmiş modelin internal/external performansını değerlendirir.")
     parser.add_argument("--checkpoint_backbone", type=str, required=True)
     parser.add_argument("--checkpoint_head", type=str, required=True)
-    parser.add_argument("--splits_dir", type=str, required=True, help="Internal (State Farm) splits klasörü.")
-    parser.add_argument("--images_root", type=str, required=True, help="Internal (State Farm) images klasörü.")
+    parser.add_argument("--splits_dir", type=str, default=None, help="Opsiyonel: Internal (State Farm) splits klasörü.")
+    parser.add_argument("--images_root", type=str, default=None, help="Opsiyonel: Internal (State Farm) images klasörü.")
     parser.add_argument("--external_splits_dir", type=str, default=None, help="Opsiyonel: external dataset splits klasörü.")
     parser.add_argument("--external_images_root", type=str, default=None, help="Opsiyonel: external dataset images klasörü.")
     parser.add_argument("--batch_size", type=int, default=32)
@@ -138,8 +149,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output_json", type=str, default=None, help="Sonuçların yazılacağı JSON dosyası (opsiyonel).")
     args = parser.parse_args()
 
+    if bool(args.splits_dir) != bool(args.images_root):
+        parser.error("--splits_dir ve --images_root birlikte verilmeli.")
     if bool(args.external_splits_dir) != bool(args.external_images_root):
         parser.error("--external_splits_dir ve --external_images_root birlikte verilmeli.")
+    if not args.splits_dir and not args.external_splits_dir:
+        parser.error("En az biri verilmeli: internal (--splits_dir/--images_root) ya da external (--external_splits_dir/--external_images_root).")
 
     return args
 
@@ -153,19 +168,22 @@ def main() -> None:
     model = SwinDriverClassifier(pretrained=False, num_classes=2).to(device)
     model = load_checkpoint(model, args.checkpoint_backbone, args.checkpoint_head, device)
 
-    loaders = get_dataloaders(
-        splits_dir=args.splits_dir,
-        images_root=args.images_root,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        use_weighted_sampler=False,
-    )
+    results = {}
+    internal_metrics = None
 
-    internal_metrics = run_evaluation(model, loaders["test"], device)
-    print("\n--- Internal (State Farm test split) Sonuçları ---")
-    print_metrics(internal_metrics)
+    if args.splits_dir:
+        loaders = get_dataloaders(
+            splits_dir=args.splits_dir,
+            images_root=args.images_root,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            use_weighted_sampler=False,
+        )
 
-    results = {"internal": internal_metrics}
+        internal_metrics = run_evaluation(model, loaders["test"], device)
+        print("\n--- Internal (State Farm test split) Sonuçları ---")
+        print_metrics(internal_metrics)
+        results["internal"] = internal_metrics
 
     if args.external_splits_dir:
         external_metrics = evaluate_external(
@@ -180,15 +198,16 @@ def main() -> None:
         print_metrics(external_metrics)
         results["external"] = external_metrics
 
-        gap = {
-            "accuracy_gap": internal_metrics["accuracy"] - external_metrics["accuracy"],
-            "recall_gap": internal_metrics["recall"] - external_metrics["recall"],
-            "f1_gap": internal_metrics["f1"] - external_metrics["f1"],
-        }
-        print("\n--- Generalization Gap (internal - external) ---")
-        for key, value in gap.items():
-            print(f"  {key}: {value:+.4f}")
-        results["generalization_gap"] = gap
+        if internal_metrics is not None:
+            gap = {
+                "accuracy_gap": internal_metrics["accuracy"] - external_metrics["accuracy"],
+                "recall_gap": internal_metrics["recall"] - external_metrics["recall"],
+                "f1_gap": internal_metrics["f1"] - external_metrics["f1"],
+            }
+            print("\n--- Generalization Gap (internal - external) ---")
+            for key, value in gap.items():
+                print(f"  {key}: {value:+.4f}")
+            results["generalization_gap"] = gap
 
     if args.output_json:
         output_path = Path(args.output_json)
