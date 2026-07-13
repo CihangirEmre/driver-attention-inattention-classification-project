@@ -31,3 +31,6 @@ venv/
 # Deneysel log/izleme araçları
 wandb/
 runs/
+
+# Bütün .md dosyaları localde kalsın
+.md
