@@ -1,0 +1,24 @@
+Kullanılan cihaz: cuda
+
+--- External Dataset Sonuçları ---
+  n_samples             : 2149
+  accuracy               : 0.9539
+  precision (distracted) : 0.9615
+  recall (distracted)    : 0.9887
+  f1 (distracted)        : 0.9749
+  confusion_matrix [[TN,FP],[FN,TP]] (0=attentive,1=distracted): [[129, 77], [22, 1921]]
+
+Sonuçlar JSON'a yazıldı: /content/eval_results.json
+
+
+Kullanılan cihaz: cuda
+
+--- Internal (State Farm test split) Sonuçları ---
+  n_samples             : 3525
+  accuracy               : 0.9424
+  precision (distracted) : 0.9646
+  recall (distracted)    : 0.9705
+  f1 (distracted)        : 0.9675
+  confusion_matrix [[TN,FP],[FN,TP]] (0=attentive,1=distracted): [[299, 111], [92, 3023]]
+
+Sonuçlar JSON'a yazıldı: /content/eval_results.json

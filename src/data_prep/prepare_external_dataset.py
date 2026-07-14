@@ -7,14 +7,21 @@ ikili (attentive/distracted) formata çevirir. Çıktısı, evaluate.py'nin
 --external_splits_dir / --external_images_root argümanlarıyla doğrudan
 kullanılabilir.
 
-Kaynak klasör yapısı (Roboflow 'Folder Structure' export'u):
+Kaynak klasör yapısı (Roboflow 'Folder Structure' export'u ya da benzeri):
 
     source_dir/
-        train/c0..c9/*.jpg
-        valid/c0..c9/*.jpg
-        test/c0..c9/*.jpg
+        train/c0../*.jpg
+        valid/  (veya "val") /c0../*.jpg
+        test/c0../*.jpg
 
-Bu script train/valid/test ayrımını yok sayar -- bu veri modele hiçbir
+Alt küme (subset) klasör isimleri kaynağa göre değişebilir (Roboflow
+"valid" kullanırken bazı kaynaklar "val" kullanıyor) -- script, source_dir
+altında hangi aday isimler gerçekten mevcutsa onları otomatik kullanır.
+Sınıf klasörleri de her zaman c0-c9'un tamamını içermek zorunda değildir
+(örn. sadece c0-c3 olabilir); CLASS_MAP'te olup kaynakta bulunmayan
+sınıflar uyarı ile atlanır, hata vermez.
+
+Bu script train/val/test ayrımını yok sayar -- bu veri modele hiçbir
 aşamada (ne eğitimde ne model seçiminde) gösterilmeyecek, sadece final
 external değerlendirme için kullanılacağından, hepsi TEK bir external
 test setinde birleştirilir. Bu yüzden subject_split.py'deki gibi
@@ -50,18 +57,28 @@ CLASS_MAP = {
     "c9": "distracted",
 }
 
-SOURCE_SUBSETS = ["train", "valid", "test"]
+# Kaynağa göre değişen olası alt küme (subset) klasör isimleri.
+# source_dir altında hangileri gerçekten mevcutsa sadece onlar kullanılır.
+SOURCE_SUBSET_CANDIDATES = ["train", "valid", "val", "test"]
 
 
 def build_external_dataset(source_dir: Path, images_root: Path, splits_dir: Path, image_ext: str = "*.jpg") -> None:
     """
-    source_dir altındaki train/valid/test/c0..c9 klasörlerini okuyup
-    images_root altında attentive/distracted klasörlerine kopyalar,
+    source_dir altındaki (train/valid veya val/test)/c0.. klasörlerini
+    okuyup images_root altında attentive/distracted klasörlerine kopyalar,
     tek bir splits_dir/test.csv üretir.
     """
     source_dir = Path(source_dir)
     images_root = Path(images_root)
     splits_dir = Path(splits_dir)
+
+    subsets_found = [s for s in SOURCE_SUBSET_CANDIDATES if (source_dir / s).is_dir()]
+    if not subsets_found:
+        raise FileNotFoundError(
+            f"{source_dir} altında beklenen alt küme klasörlerinden ({SOURCE_SUBSET_CANDIDATES}) "
+            f"hiçbiri bulunamadı. Kaynak yolunu kontrol et."
+        )
+    print(f"Bulunan alt küme klasörleri: {subsets_found}")
 
     for binary_class in set(CLASS_MAP.values()):
         (images_root / binary_class).mkdir(parents=True, exist_ok=True)
@@ -70,7 +87,7 @@ def build_external_dataset(source_dir: Path, images_root: Path, splits_dir: Path
     rows = []
     counts = {binary_class: 0 for binary_class in set(CLASS_MAP.values())}
 
-    for subset in SOURCE_SUBSETS:
+    for subset in subsets_found:
         for original_class, binary_class in CLASS_MAP.items():
             src = source_dir / subset / original_class
             if not src.exists():
@@ -111,7 +128,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="External driver-distraction veri setini ikili formata çevirir.")
     parser.add_argument(
         "--source", type=str, required=True,
-        help="Roboflow export'unun kök klasörü (train/valid/test/c0..c9 içerir).",
+        help="External veri setinin kök klasörü (train/valid-veya-val/test alt klasörlerini, her biri c0.. sınıf klasörlerini içerir).",
     )
     parser.add_argument(
         "--images_root", type=str, required=True,
