@@ -10,11 +10,6 @@ Kullanım (local veya Colab'da aynı şekilde çalışır):
         --source /content/statefarm/imgs/train \
         --target /content/statefarm_binary
 
-Notlar:
-- Görseller kopyalanır (taşınmaz), orijinal veri seti bozulmaz.
-- Dosya adına orijinal sınıf (c0, c1, ...) eklenir, böylece ileride
-  hata analizi yapılırken hangi alt-davranışın yanlış sınıflandırıldığı
-  geri izlenebilir.
 - c0 = safe driving -> attentive
   c1-c9 = distracted alt-davranışları -> distracted
 """
@@ -40,10 +35,7 @@ CLASS_MAP = {
 
 
 def build_binary_dataset(source_dir: Path, target_dir: Path, image_ext: str = "*.jpg") -> None:
-    """
-    source_dir altındaki c0..c9 klasörlerini okuyup target_dir altında
-    attentive/ ve distracted/ klasörlerine kopyalar.
-    """
+    
     source_dir = Path(source_dir)
     target_dir = Path(target_dir)
 

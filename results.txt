@@ -1,6 +1,4 @@
 
-
-
 Kullanılan cihaz: cuda
 
 --- Internal (State Farm test split) Sonuçları(https://www.kaggle.com/competitions/state-farm-distracted-driver-detection/overview) ---
